@@ -1,3 +1,8 @@
+
+import serial
+import time
+
+
 class Display:
     def showTemperature(self, temp_str):
         pass
@@ -16,20 +21,20 @@ class LCD(Display):
     def __init__(self, tempUnits):
         self.tempUnits = tempUnits
         ser = serial.Serial("/dev/ttyAMA0", 9600)
-        ser.write("?BFF")
+        ser.write(b"?BFF")
         time.sleep(.1) #wait 100msec
         ser.write("?f?a")
-        ser.write("?y0?x00PID off      ")
-        ser.write("?y1?x00HLT:")
-        ser.write("?y3?x00Heat: off      ")
-        ser.write("?D70609090600000000") #define degree symbol
+        ser.write(b"?y0?x00PID off      ")
+        ser.write(b"?y1?x00HLT:")
+        ser.write(b"?y3?x00Heat: off      ")
+        ser.write(b"?D70609090600000000") #define degree symbol
         time.sleep(.1) #wait 100msec
 
     def showTemperature(self, temp_str):
         #write to LCD
-        ser.write("?y1?x05")
+        ser.write(b"?y1?x05")
         ser.write(temp_str)
-        ser.write("?7") #degree
+        ser.write(b"?7") #degree
         time.sleep(.005) #wait 5msec
         if (self.tempUnits == 'F'):
             ser.write("F   ")
@@ -38,16 +43,16 @@ class LCD(Display):
 
     def showDutyCycle(self, duty_cycle):
         #write to LCD
-        ser.write("?y2?x00Duty: ")
-        ser.write("%3.1f" % duty_cycle)
-        ser.write("%     ")
+        ser.write(b"?y2?x00Duty: ")
+        ser.write(b"%3.1f" % duty_cycle)
+        ser.write(b"%     ")
 
     def showAutoMode(self, set_point):
-        ser.write("?y0?x00Auto Mode     ")
-        ser.write("?y1?x00HLT:")
-        ser.write("?y3?x00Set To: ")
-        ser.write("%3.1f" % set_point)
-        ser.write("?7") #degree
+        ser.write(b"?y0?x00Auto Mode     ")
+        ser.write(b"?y1?x00HLT:")
+        ser.write(b"?y3?x00Set To: ")
+        ser.write(b"%3.1f" % set_point)
+        ser.write(b"?7") #degree
         time.sleep(.005) #wait 5msec
         if (self.tempUnits == 'F'):
             ser.write("F   ")
@@ -55,19 +60,19 @@ class LCD(Display):
             ser.write("C   ")
 
     def showBoilMode(self):
-        ser.write("?y0?x00Boil Mode     ")
-        ser.write("?y1?x00BK: ")
-        ser.write("?y3?x00Heat: on       ")
+        ser.write(b"?y0?x00Boil Mode     ")
+        ser.write(b"?y1?x00BK: ")
+        ser.write(b"?y3?x00Heat: on       ")
 
     def showManualMode(self):
-        ser.write("?y0?x00Manual Mode     ")
-        ser.write("?y1?x00BK: ")
-        ser.write("?y3?x00Heat: on       ")
+        ser.write(b"?y0?x00Manual Mode     ")
+        ser.write(b"?y1?x00BK: ")
+        ser.write(b"?y3?x00Heat: on       ")
 
     def showOffMode(self):
-        ser.write("?y0?x00PID off      ")
-        ser.write("?y1?x00HLT:")
-        ser.write("?y3?x00Heat: off      ")
+        ser.write(b"?y0?x00PID off      ")
+        ser.write(b"?y1?x00HLT:")
+        ser.write(b"?y3?x00Heat: off      ")
 
 class NoDisplay(Display):
     def __init__(self):

@@ -26,15 +26,13 @@ from subprocess import Popen, PIPE, call
 from datetime import datetime
 import time, random, serial, os
 import sys
-from smbus import SMBus
+from smbus2 import SMBus
 import RPi.GPIO as GPIO
 from pid import pidpy as PIDController
 import xml.etree.ElementTree as ET
 from flask import Flask, render_template, request, jsonify
-
 import Temp1Wire
 import Display
-
 global parent_conn, parent_connB, parent_connC, statusQ, statusQ_B, statusQ_C
 global xml_root, template_name, pinHeatList, pinGPIOList
 global brewtime, oneWireDir
@@ -448,94 +446,75 @@ def logdata(tank, temp, heat):
 
 
 if __name__ == '__main__':
-
     brewtime = time.time()
-        
-    
     # The next two calls are not needed for January 2015 or newer builds (kernel 3.18.8 and higher)
     # /boot/config.txt needs 'dtoverlay=w1-gpio' at the bottom of the file
     call(["modprobe", "w1-gpio"])
     call(["modprobe", "w1-therm"])
     call(["modprobe", "i2c-bcm2708"])
     call(["modprobe", "i2c-dev"])
-    
     # Retrieve root element from config.xml for parsing
     tree = ET.parse('config.xml')
     xml_root = tree.getroot()
     template_name = xml_root.find('Template').text.strip()
-
     root_dir_elem = xml_root.find('RootDir')
     if root_dir_elem is not None:
         os.chdir(root_dir_elem.text.strip())
     else:
         print("No RootDir tag found in config.xml, running from current directory")
-
     useLCD = xml_root.find('Use_LCD').text.strip()
     if useLCD == "yes":
         tempUnits = xml_root.find('Temp_Units').text.strip()
         display = Display.LCD(tempUnits)
     else:
         display = Display.NoDisplay()
-    
     gpioNumberingScheme = xml_root.find('GPIO_pin_numbering_scheme').text.strip()
     if gpioNumberingScheme == "BOARD":
         GPIO.setmode(GPIO.BOARD)
     else:
-	GPIO.setmode(GPIO.BCM)
-
+        GPIO.setmode(GPIO.BCM)
     gpioInverted = xml_root.find('GPIO_Inverted').text.strip()
     if gpioInverted == "0":
-	ON = 1
-	OFF = 0
+        ON = 1
+        OFF = 0
     else:
-	ON = 0
-	OFF = 1
-
-
+        ON = 0
+        OFF = 1
     pinHeatList=[]
     for pin in xml_root.iter('Heat_Pin'):
         pinHeatList.append(int(pin.text.strip()))
-        
     pinGPIOList=[]
     for pin in xml_root.iter('GPIO_Pin'):
         pinGPIOList.append(int(pin.text.strip()))
-        
     for pinNum in pinGPIOList:
         GPIO.setup(pinNum, GPIO.OUT)
-    
     for tempSensorId in xml_root.iter('Temp_Sensor_Id'):
         myTempSensor = Temp1Wire.Temp1Wire(tempSensorId.text.strip())     
-          
         if len(pinHeatList) >= myTempSensor.sensorNum + 1:
             pinNum = pinHeatList[myTempSensor.sensorNum]
             readOnly = False
         else:
             pinNum = 0
             readOnly = True
-        
         if myTempSensor.sensorNum >= 1:
             display = Display.NoDisplay()
-             
         if myTempSensor.sensorNum == 0:
             statusQ = Queue(2) #blocking queue        
             parent_conn, child_conn = Pipe()
             p = Process(name = "tempControlProc", target=tempControlProc, args=(myTempSensor, display, pinNum, readOnly, \
                                                               param.status, statusQ, child_conn))
             p.start()
-            
         if myTempSensor.sensorNum == 1:
             statusQ_B = Queue(2) #blocking queue    
             parent_connB, child_conn = Pipe()  
             p = Process(name = "tempControlProc", target=tempControlProc, args=(myTempSensor, display, pinNum, readOnly, \
                                                               param.status, statusQ_B, child_conn))
             p.start()
-            
         if myTempSensor.sensorNum == 2:
             statusQ_C = Queue(2) #blocking queue 
             parent_connC, child_conn = Pipe()     
             p = Process(name = "tempControlProc", target=tempControlProc, args=(myTempSensor, display, pinNum, readOnly, \
                                                               param.status, statusQ_C, child_conn))
             p.start()
-
     app.debug = True 
     app.run(use_reloader=False, host='0.0.0.0')
